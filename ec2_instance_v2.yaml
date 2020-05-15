@@ -1,0 +1,86 @@
+### Compliled by Shanil Hirani - V2 ###
+### EC2 Instance Template with various comments to aid in Instance Deployment. ### 
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys Two EC2 Instances based Amazon AMI. In a Private and Public Subnet for a simple Front and Backend App.
+### Configure Parameters as needed ###
+
+Parameters:
+  PrivateInstanceName:
+    Description: Name of your Private instance?
+    Type: String
+    Default: I_did_not_name_my_ec2_instance
+
+  PublicInstanceName:
+    Description: Name of your Public  instance?
+    Type: String
+    Default: I_did_not_name_my_ec2_instance
+
+  InstanceSize: 
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+    Type: String
+    Default: t2.micro
+    AllowedValues: 
+      - t2.micro
+      - m1.small
+      - m1.large
+
+  KeyPair:
+    Description: Key Pair
+    Type: String
+    Default: sh-kp
+      
+  AMIid:
+    Description: AMI ID 
+    Type: AWS::EC2::Image::Id
+    Default: ami-09ead922c1dad67e4
+
+### EC2 Resources deployed as below specs - This will be changed to use Parements and !Refs in later revisions.
+Resources:
+### Private Instance
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceSize
+      ImageId: !Ref AMIid
+      KeyName: !Ref KeyPair
+      SecurityGroupIds: 
+        - !ImportValue multi-az-vpc-sg-private
+      SubnetId: !Select [0, !Split [",", !ImportValue multi-az-vpc-private-subnet-id]]
+      Tags:
+      - Key: Name
+        Value: !Ref PrivateInstanceName    
+### Public Instance
+  EC2Instance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceSize
+      ImageId: !Ref AMIid
+      KeyName: !Ref KeyPair
+      SecurityGroupIds: 
+        - !ImportValue multi-az-vpc-sg-public
+      SubnetId: !Select [0, !Split [",", !ImportValue multi-az-vpc-public-subnet-id]]
+      Tags:
+      - Key: Name
+        Value: !Ref PublicInstanceName    
+#### Outputs
+Outputs:
+  EC2InstanceName: 
+    Description: Instance Name
+    Value: !Join [",",[!Ref EC2Instance, !Ref EC2Instance2]]
+
+  EC2InstanceAZ:
+    Description: Availability Zone of the newly created EC2 instance
+    Value: !Join [",",[!Ref EC2Instance, !Ref EC2Instance2]]
+
+### Public Instance  
+  PublicDNS: 
+    Description: Public DNSName of the newly created Public instance
+    Value: !GetAtt 
+      - EC2Instance2
+      - PublicDnsName
+  PublicIP:
+    Description: Public IP address of the newly created Public instance
+    Value: !GetAtt 
+      - EC2Instance2
+      - PublicIp

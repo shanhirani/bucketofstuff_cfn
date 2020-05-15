@@ -1,0 +1,13 @@
+ #!/bin/bash
+yum update -y # Update packages
+amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2 #Install LAMP packages
+yum install -y httpd mariadb-server    
+echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+curl http://169.254.169.254/latest/meta-data/public-hostname > /var/www/html/index.html #Creates a simple page with DNS name and ALB/CLB Monitor url.
+echo "<html><h1>Healthcheck Test Page</h1></html>" > /var/www/html/healthcheck.html     
+usermod -a -G apache ec2-user # Assigns Perms to Dirs.
+chown -R ec2-user:apache /var/www
+chmod 2775 /var/www && find /var/www -type d -exec sudo chmod 2775 {} \;
+find /var/www -type f -exec sudo chmod 0664 {} \;
+systemctl start httpd && systemctl enable httpd # starts HTTPD and Maria DB
+systemctl start mariadb && systemctl enable mariadb  

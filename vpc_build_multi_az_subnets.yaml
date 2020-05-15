@@ -1,0 +1,503 @@
+### Shanil V5.1 ###
+### Note that Subnets A,C,E are Private and B,D,F are Public. ### 
+### Subnets A + B = 1 AZ therefore this can be easily scaled. ###
+### If no AZ is supplied then AWS will auto-allocate          ###
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: An AWS VPC which deploys Six Subnets (3 Private and 3 Public) placed accross 3 AZ.
+### Configure Parameters as needed ###
+Parameters:
+
+### Default VPC will be deployed using subnetmask of /16 with 10.0.0.0 
+ VPCCIDR:
+  Type: String
+  Default: 10.0.0.0/16
+  Description: Default VPC
+
+### Subnet A - Private located in AZ 1
+ SubnetACidr: 
+  Type: String
+  Default: 10.0.0.0/19
+  Description: Private
+
+ SubnetAAvailabilityZ:
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2a
+
+ ### Subnet B - Public located in AZ 1
+ SubnetBCidr: 
+  Type: String
+  Default: 10.0.32.0/19 
+  Description: Public
+
+ SubnetBAvailabilityZ: 
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2a
+
+ ### Subnet C - Private located in AZ 2 - Remove if you dont need additional subnets/az
+ SubnetCCidr:
+  Type: String
+  Default: 10.0.64.0/19
+  Description: Private
+
+ SubnetCAvailabilityZ: 
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2b
+
+ ### Subnet D - Public located in AZ 2 - Remove if you dont need additional subnets/az
+ SubnetDCidr:
+  Type: String
+  Default: 10.0.96.0/19
+  Description: Public
+
+ SubnetDAvailabilityZ: 
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2b 
+
+ ### Subnet E - Private located in AZ 3 - Remove if you dont need additional subnets/az 
+ SubnetECidr:
+  Type: String
+  Default: 10.0.128.0/19
+  Description: Private
+
+ SubnetEAvailabilityZ: 
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2c 
+
+ ### Subnet F - Public located in AZ 3 - Remove if you dont need additional subnets/az
+
+ SubnetFCidr:
+  Type: String
+  Default: 10.0.160.0/19
+  Description: Public
+
+ SubnetFAvailabilityZ: 
+  Description: The availability zone which will be assigned to this subnet
+  Type: AWS::EC2::AvailabilityZone::Name
+  Default: eu-west-2c
+
+### Resources ###
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: "Name"
+        Value: "Multi-AZ-VPC"
+### Default Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+       Tags:
+       - Key: "Name"
+         Value: "Internet Gateway"    
+### VPC Gateway Attachment
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+### Subnets - all configuration have been referenced with the parameters above.
+  SubnetA: 
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetACidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Ref SubnetAAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 1: Private"
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetBCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref SubnetBAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 1: Public"
+  SubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetCCidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Ref SubnetCAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 2: Private"
+  SubnetD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetDCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref SubnetDAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 2: Public"
+  SubnetE:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetECidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Ref SubnetEAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 3: Private"
+  SubnetF:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetFCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref SubnetFAvailabilityZ
+      Tags:
+      - Key: "Name"
+        Value: "AZ 3: Public"
+### Routing Tables (Public and Private Tables)
+  RouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: "Name"
+        Value: "Public Routing Table"
+  InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway 
+      RouteTableId: !Ref RouteTablePublic
+  SubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref SubnetB
+  SubnetDRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref SubnetD
+  SubnetFRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref SubnetF
+  ### Private Table - AZ1
+  RouteTablePrivateAZ1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: "Name"
+        Value: "Private Routing Table for AZ1"
+  ### Private Table Assoc - AZ1 
+  SubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateAZ1
+      SubnetId: !Ref SubnetA
+  ### Private Table - AZ2
+  RouteTablePrivateAZ2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: "Name"
+        Value: "Private Routing Table for AZ2"
+  ### Private Table Assocs - AZ2
+  SubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateAZ2
+      SubnetId: !Ref SubnetC
+  ### Private Table - AZ3
+  RouteTablePrivateAZ3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: "Name"
+        Value: "Private Routing Table for AZ3"
+  ### Private Table Assocs - AZ3
+  SubnetERouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateAZ3
+      SubnetId: !Ref SubnetE
+  ### Private Table Routes - AZ 1
+  SubnetANatGWRoute:
+    DependsOn:
+    - RouteTablePrivateAZ1
+    - SubnetBNatGW
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTablePrivateAZ1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: SubnetBNatGW
+  ### Private Table Route - AZ 2     
+  SubnetCNatGWRoute:
+    DependsOn:
+    - RouteTablePrivateAZ2
+    - SubnetDNatGW
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTablePrivateAZ2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: SubnetDNatGW
+   ### Private Table Route - AZ3 
+  SubnetENatGWRoute:
+    DependsOn:
+    - RouteTablePrivateAZ3
+    - SubnetFNatGW
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTablePrivateAZ3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: SubnetFNatGW
+### NatGateways (B, D and F) - Add/Remove if changes are required. 
+  SubnetBNatGW:
+    Type: "AWS::EC2::NatGateway"
+    DependsOn: SubnetBNatEIP
+    Properties:
+      AllocationId:
+       Fn::GetAtt:
+       - SubnetBNatEIP
+       - AllocationId
+      SubnetId: !Ref SubnetB
+      Tags:
+      - Key: "Name"
+        Value: "Subnet B - NatGateway"  
+  SubnetDNatGW:
+    Type: "AWS::EC2::NatGateway"
+    DependsOn: SubnetDNatEIP
+    Properties:
+      AllocationId:
+       Fn::GetAtt:
+       - SubnetDNatEIP
+       - AllocationId
+      SubnetId: !Ref SubnetD
+      Tags:
+      - Key: "Name"
+        Value: "Subnet D - NatGateway"
+  SubnetFNatGW:
+    Type: "AWS::EC2::NatGateway"
+    DependsOn: SubnetFNatEIP
+    Properties:
+      AllocationId:
+       Fn::GetAtt:
+       - SubnetFNatEIP
+       - AllocationId
+      SubnetId: !Ref SubnetF
+      Tags:
+      - Key: "Name"
+        Value: "Subnet F - NatGateway"      
+### Elastic IP
+  SubnetBNatEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGateway
+    Properties:
+      Domain: VPC
+  SubnetDNatEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGateway
+    Properties:
+      Domain: VPC
+  SubnetFNatEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGateway
+    Properties:
+      Domain: VPC            
+### Security Groups 
+### Management Security Group - Public Instances
+  SecurityGroupPublicMgmt:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Public EC2 Instances - Management SG"
+      GroupDescription: "Allows SSH to Public EC2 Instances"
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public EC2 Instances - Management SG
+  ### Inbound
+      SecurityGroupIngress:
+       -
+        IpProtocol: tcp
+        FromPort: "22"
+        ToPort: "22"
+        CidrIp: 0.0.0.0/0
+  ### Outbound
+      SecurityGroupEgress:
+        IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+### Management Security Group - Private Instances
+  SecurityGroupPrivateMgmt:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Private EC2 Instances - Management SG"
+      GroupDescription: "Allows SSH to Private EC2 Instances"
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Allows SSH to Private EC2 Instances
+  ### Inbound
+      SecurityGroupIngress:
+       -
+        IpProtocol: tcp
+        FromPort: "22"
+        ToPort: "22"
+        CidrIp: 0.0.0.0/0
+  ### Outbound
+      SecurityGroupEgress:
+        IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+
+### Production (EC2/RDS/S3) Security Group for Public Subnets
+  SecurityGroupPublic:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Public EC2 Instances - HTTP In"
+      GroupDescription: "Public EC2 Instances - HTTP In"
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Load Balancer Security Group
+  ### Inbound
+      SecurityGroupIngress:
+       -
+        IpProtocol: tcp
+        FromPort: "80"
+        ToPort: "80"
+        CidrIp: 0.0.0.0/0
+  ### Outbound
+      SecurityGroupEgress:
+        IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+### Production (EC2/RDS/S3) Security Group for Private Subnets 
+  SecurityGroupPrivate:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Private EC2 Instances - HTTP In"
+      GroupDescription: "Private EC2 Instances - HTTP In"
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Load Balancer Security Group
+  ### Inbound
+      SecurityGroupIngress:
+       -
+        IpProtocol: tcp
+        FromPort: "80"
+        ToPort: "80"
+        CidrIp: 0.0.0.0/0
+  ### Outbound
+      SecurityGroupEgress:
+        IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+
+Outputs:
+ VPC: 
+  Description: A reference to the created VPC
+  Value: !Ref VPC
+  Export:
+   Name: !Sub "${AWS::StackName}"
+ 
+ PrivateSubnets:
+  Description: A list of the private subnets 
+  Value: !Join [",",[!Ref SubnetA, !Ref SubnetC, !Ref SubnetE]]
+  Export:
+   Name: !Sub "${AWS::StackName}-private-subnet-id"
+ 
+ PublicSubnets:
+  Description: A list of the public subnets
+  Value: !Join [",",[!Ref SubnetB, !Ref SubnetD, !Ref SubnetF]]
+  Export:
+   Name: !Sub "${AWS::StackName}-public-subnet-id"
+
+ PrivateSubnetAZ:
+  Description: List of Private Subnet Availability Zones
+  Value: !Join [",",[!Ref SubnetAAvailabilityZ, !Ref SubnetCAvailabilityZ, !Ref SubnetEAvailabilityZ]]
+
+ PublicSubnetAZ:
+  Description: List of Public Subnets Availability Zones
+  Value: !Join [",",[!Ref SubnetBAvailabilityZ, !Ref SubnetDAvailabilityZ, !Ref SubnetFAvailabilityZ]]
+
+ PrivateSubnetA:
+  Description: Private Subnet A 
+  Value: !Ref SubnetACidr
+  Export:
+   Name: !Sub "${AWS::StackName}-private-subnet-a"
+ 
+ PrivateSubnetC:
+  Description: Private Subnet C 
+  Value: !Ref SubnetCCidr
+  Export:
+   Name: !Sub "${AWS::StackName}-private-subnet-c"
+ 
+ PrivateSubnetE:
+  Description: Private Subnet E 
+  Value: !Ref SubnetECidr
+  Export:
+   Name: !Sub "${AWS::StackName}-private-subnet-e"
+
+ PublicSubnetB:
+  Description: Public Subnet B 
+  Value: !Ref SubnetBCidr
+  Export:
+   Name: !Sub "${AWS::StackName}-public-subnet-b"
+
+ PublicSubnetD:
+  Description: Public Subnet D
+  Value: !Ref SubnetDCidr
+  Export:
+   Name: !Sub "${AWS::StackName}-public-subnet-d"   
+  
+ PublicSubnetF:
+  Description: Public Subnet F 
+  Value: !Ref SubnetFCidr
+  Export:
+   Name: !Sub "${AWS::StackName}-public-subnet-f"
+ 
+ SecurityGroupPublic:
+  Description: Security group "Public EC2 Instances - HTTP In"
+  Value: !Ref SecurityGroupPublic
+  Export:
+   Name: !Sub "${AWS::StackName}-sg-public"
+
+ SecurityGroupPublicMgmt:
+  Description: Security group "Allows SSH to Public EC2 Instances"
+  Value: !Ref SecurityGroupPublicMgmt
+  Export:
+   Name: !Sub "${AWS::StackName}-sg-public-mgmt"
+
+ SecurityGroupPrivate:
+  Description: Security group "Private EC2 Instances - HTTP In"
+  Value: !Ref SecurityGroupPrivate
+  Export:
+   Name: !Sub "${AWS::StackName}-sg-private"
+
+ SecurityGroupPrivateMgmt:
+  Description: Security group "Allows SSH to Private EC2 Instances"
+  Value: !Ref SecurityGroupPrivateMgmt
+  Export:
+   Name: !Sub "${AWS::StackName}-sg-private-mgmt"

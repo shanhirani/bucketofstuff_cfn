@@ -1,0 +1,97 @@
+### Compliled by Shanil Hirani - V1 ###
+### EC2 Instance Template with various comments to aid in Instance Deployment. ### 
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys as a EC2 Instance based on values below
+### Configure Parameters as needed ###
+
+Parameters:
+  InstanceName:
+    Description: Name of your Private instance?
+    Type: String
+    Default: I_did_not_name_my_ec2_instance
+  
+  InstanceSize: 
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+    Type: String
+    Default: t2.micro
+    AllowedValues: 
+      - t2.micro
+      - m1.small
+      - m1.large
+  
+  KeyPair:
+    Description: Key Pair
+    Type: String
+    Default: sh-kp    
+  
+  AMIid:
+    Description: AMI ID 
+    Type: AWS::EC2::Image::Id
+    Default: ami-09ead922c1dad67e4
+
+#EC2 Resources deployed as below specs - This will be changed to use Parements and !Refs in later revisions.
+Resources:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      #AdditionalInfo: String
+      #Affinity: String
+      #AvailabilityZone: String
+      BlockDeviceMappings: # Can be used to modify EBS - Below is an example of two 10gb disks using general purpose ssd
+        - 
+         DeviceName: "/dev/sda1"
+         Ebs: 
+          VolumeSize: 10
+          VolumeType: gp2
+        -
+         DeviceName: "/dev/sda2"
+         Ebs:
+          VolumeSize: 10
+          VolumeType: gp2
+      #CreditSpecification:
+        #CreditSpecification
+      DisableApiTermination: false # Can be used to protect accidental terminiation
+      #EbsOptimized: Boolean
+      #ElasticGpuSpecifications:
+      #  - ElasticGpuSpecification
+      #ElasticInferenceAccelerators:
+      #  - ElasticInferenceAccelerator
+      #HostId: String
+      #IamInstanceProfile: String
+      ImageId: !Ref AMIid #Required e.g ami-80861296 deploys a Ubunutu AMI with SSD EBS
+      #InstanceInitiatedShutdownBehavior: String
+      InstanceType: !Ref InstanceSize # VM Sizing
+      #Ipv6AddressCount: Integer
+      #Ipv6Addresses:
+      #  - InstanceIpv6Address
+      #KernelId: String
+      KeyName: !Ref KeyPair # Maps to a Key Pair if existing
+      #LaunchTemplate:
+      #  LaunchTemplateSpecification
+      #LicenseSpecifications:
+      #  - LicenseSpecification
+      #Monitoring: Boolean
+      #NetworkInterfaces:
+      #  - NetworkInterface
+      #PlacementGroupName: String
+      #PrivateIpAddress: String
+      #RamdiskId: String
+      SecurityGroupIds: # Maps the instance to an existing VPC Security Group
+        - !ImportValue {AWS::StackName-xxx}
+      #SecurityGroups:
+      #  - String
+      #SourceDestCheck: Boolean
+      #SsmAssociations:
+      #  - SsmAssociation
+      SubnetId: !Select [0, !Split ["," !ImportValue AWS::StackName-Output]] # Maps the instance to a specific Subnet and AZ.
+      Tags: # Apply Tags for Names and such
+        -
+          Key: Name
+          Value: cr-sh-hol-server-001
+      #Tenancy: String
+      #UserData: String
+      #Volumes:
+      # - Volume
+        
+Outputs:
+  #set of outputs

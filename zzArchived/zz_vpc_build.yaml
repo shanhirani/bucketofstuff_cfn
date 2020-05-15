@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys as a EC2 Instance based on values below
+
+Parameters:
+  #set of parameters
+
+Resources:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      #AdditionalInfo: String
+      #Affinity: String
+      #AvailabilityZone: String
+      BlockDeviceMappings: # Can be used to modify EBS - Below is an example of two 20gb disks using general purpose ssd
+        - 
+         DeviceName: "/dev/sda1"
+         Ebs: 
+          VolumeSize: 20
+          VolumeType: gp2
+        -
+         DeviceName: "/dev/sda2"
+         Ebs:
+          VolumeSize: 20
+          VolumeType: gp2
+      #CreditSpecification:
+        #CreditSpecification
+      DisableApiTermination: false # Can be used to protect accidental terminiation
+      #EbsOptimized: Boolean
+      #ElasticGpuSpecifications:
+      #  - ElasticGpuSpecification
+      #ElasticInferenceAccelerators:
+      #  - ElasticInferenceAccelerator
+      #HostId: String
+      #IamInstanceProfile: String
+      ImageId: ami-80861296 #Required e.g ami-80861296 deploys a Ubunutu AMI with SSD EBS
+      InstanceInitiatedShutdownBehavior: String
+      InstanceType: t2.nano # VM Sizing
+      #Ipv6AddressCount: Integer
+      #Ipv6Addresses:
+      #  - InstanceIpv6Address
+      #KernelId: String
+      KeyName: String # Maps to a Key Pair if existing
+      #LaunchTemplate:
+      #  LaunchTemplateSpecification
+      #LicenseSpecifications:
+      #  - LicenseSpecification
+      #Monitoring: Boolean
+      NetworkInterfaces:
+        - NetworkInterface
+      PlacementGroupName: String
+      PrivateIpAddress: String
+      RamdiskId: String
+      SecurityGroupIds: # Maps the instance to an existing VPC Security Group
+        - String
+      SecurityGroups:
+        - String
+      SourceDestCheck: Boolean
+      SsmAssociations:
+        - SsmAssociation
+      SubnetId: String # Maps the instance to a specific Subnet and AZ.
+      Tags: # Apply Tags for Names and such
+        -
+          Key: Name
+          Value: cr-sh-hol-server-001
+      Tenancy: String
+      UserData: String
+      Volumes:
+        - Volume
+  
+
+Outputs:
+  #set of outputs
+  

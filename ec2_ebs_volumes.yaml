@@ -1,0 +1,24 @@
+### Shanil V1 ###
+### Creates a an EBS Volume  ### 
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Provision EBS Volumes.
+
+Parameters:
+  #set of parameters
+
+Resources:
+  Type: "AWS::EC2::Volume"
+  Properties:
+    #AutoEnableIO: false
+    AvailabilityZone: Re #required
+    Encrypted: false
+    #Iops: Integer
+    #KmsKeyId: String
+    Size: 50
+    #SnapshotId: String
+    Tags:
+      - 
+       Key: Name
+       Value: 
+    VolumeType: gp2

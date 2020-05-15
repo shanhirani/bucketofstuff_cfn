@@ -1,0 +1,109 @@
+### Shanil V2 ###
+### Creates a Internal Elastic Load Balancer fronting an Autoscaling Group deploying EC2 Instances in a Prvate Range  ### 
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Provisions an EC2 Fleet in a Private Subnet for Back-End Services using a launch template defined below.
+### Configure Parameters as needed ###
+
+Parameters:
+  KeyPair:
+    Description: Please select Key Pair for remote conenctivity for any EC2 Instances deployed using this template.
+    Type: AWS::EC2::KeyPair::KeyName
+  
+  AMIid:
+    Description: The following AMI ID consists of an Amazon AMI Linux 2. 
+    Type: AWS::EC2::Image::Id
+    Default: ami-09ead922c1dad67e4  
+  
+  InstanceSize: 
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+    Type: String
+    Default: t2.micro
+    AllowedValues: 
+      - t2.micro
+      - m1.small
+      - m1.large
+
+  ASGInstanceName:
+    Description: Name of your EC2 Fleet Instances
+    Type: String
+    Default: asg-ec2-priv-001 
+
+  ASGName:
+    Description: Name of ASG Instance
+    Type: String
+    Default: asg-ec2-priv-001 
+
+  ASGGroupMin:
+    Description: Min No. of Instances you require running at all times.
+    Type: String
+    Default: "1"
+    
+  ASGGroupMax:
+    Description: Max No. of Instances you are willing to spin up
+    Type: String
+    Default: "3"
+
+  ASGGroupDesired:
+    Description: Your desired No. of Instances (consider Availablity and Reduntancy)
+    Type: String
+    Default: "1"
+
+### ASG Launch Template and Group
+Resources:
+### Launch Template
+  ASGPrivateEC2LaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateName: ASGPrivateEC2
+      LaunchTemplateData:
+        InstanceType: !Ref InstanceSize
+        ImageId: !Ref AMIid
+        KeyName: !Ref KeyPair
+        SecurityGroupIds:
+          - !ImportValue multi-az-vpc-sg-private
+        UserData:
+          Fn::Base64: |
+             #!/bin/bash
+             yum update -y # Update packages
+             amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2 #Install LAMP packages
+             yum install -y httpd mariadb-server    
+             echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+             curl http://169.254.169.254/latest/meta-data/public-hostname > /var/www/html/index.html #Creates a simple page with DNS name and ALB/CLB Monitor url.
+             echo "<html><h1>Healthcheck Test Page</h1></html>" > /var/www/html/healthcheck.html     
+             usermod -a -G apache ec2-user # Assigns Perms to Dirs.
+             chown -R ec2-user:apache /var/www
+             chmod 2775 /var/www && find /var/www -type d -exec sudo chmod 2775 {} \;
+             find /var/www -type f -exec sudo chmod 0664 {} \;
+             systemctl start httpd && systemctl enable httpd # starts HTTPD and Maria DB
+             systemctl start mariadb && systemctl enable mariadb            
+### Autoscale Group        
+  ASGPrivateEC2Group:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    DependsOn: "ASGPrivateEC2LaunchTemplate"
+    Properties:
+      MaxSize: !Ref ASGGroupMax
+      MinSize: !Ref ASGGroupMin
+      DesiredCapacity: !Ref ASGGroupDesired
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ASGPrivateEC2LaunchTemplate
+        Version: 1 
+      VPCZoneIdentifier: !Split [",", !ImportValue multi-az-vpc-private-subnet-id]
+      Tags:
+      - Key: Name
+        Value: !Ref ASGInstanceName
+        PropagateAtLaunch: 'true'
+
+### Outputs
+Outputs:
+  ASGPrivateEC2Group:
+    Description: Private Auto Scaling Group
+    Value: !Ref ASGPrivateEC2Group
+    Export:
+      Name: !Sub "${AWS::StackName}-asg-priv-001"
+
+  ASGPrivateEC2LaunchTemplate:
+    Description: Launch Template for Private EC2 Fleet
+    Value: !Ref ASGPrivateEC2LaunchTemplate
+    Export:
+      Name: !Sub "${AWS::StackName}-asg-lt-priv-001"
